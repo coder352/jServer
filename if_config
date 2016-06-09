@@ -1,0 +1,13 @@
+#!/bin/bash
+path="/etc/network"
+file="/etc/network/interfaces"
+filebak=$path/interfaces.jbak
+#if [ ! -e $path/interfaces.bak ]; then cp $path/interfaces $path/interfaces.bak; fi
+# 上面这一行可以写在一行，加上; 就可以了
+if [ ! -e $filebak ] 
+then 
+    cp $file $filebak 
+    echo "first modify"
+else 
+    echo "already configure the interfaces"
+fi

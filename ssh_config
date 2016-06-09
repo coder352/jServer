@@ -1,0 +1,29 @@
+#!/bin/bash
+
+if [ ! -e "~/.ssh"]
+then 
+    mkdir ~/.ssh
+    chmod 700 ~/.ssh
+fi
+
+file="~/.ssh/jid_rsa.pub"
+if [ ! -e $file ]
+then
+    cp ./src/jid_rsa.pub ~/.ssh/jid_rsa.pub
+    cp ./src/did_rsa.pub ~/.ssh/did_rsa.pub
+    echo "first modify"
+else
+    echo "already configure the ssh"
+fi
+
+cd ~/.ssh
+if [ ! -e authorizedkeys ]
+then 
+    touch authorizedkeys
+fi
+cat jid_rsa.pub > authorizedkeys
+cat did_rsa.pub > authorizedkeys
+chmod 777 authorizedkeys
+
+
+
