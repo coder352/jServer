@@ -20,12 +20,12 @@ else
 fi
 
 cd ~/.ssh
-if [ ! -e authorizedkeys ]
+if [ ! -e authorized_keys ]
 then 
-    touch authorizedkeys
+    touch authorized_keys 
 fi
-cat jid_rsa.pub > authorizedkeys
-cat did_rsa.pub >> authorizedkeys
+cat jid_rsa.pub > authorized_keys 
+cat did_rsa.pub >> authorized_keys 
 chmod 777 authorizedkeys
 
 
