@@ -6,7 +6,7 @@ if [ ! -e "$path/.ssh" ]
 then 
     echo "mkdir the ~/.ssh directory"
     mkdir ~/.ssh
-    chmod 700 ~/.ssh
+    chmod 0700 ~/.ssh
 fi
 
 file="$path/.ssh/jid_rsa.pub"
@@ -26,7 +26,7 @@ then
 fi
 cat jid_rsa.pub > authorized_keys 
 cat did_rsa.pub >> authorized_keys 
-chmod 777 authorized_keys 
+chmod 600 authorized_keys 
 
 
 
