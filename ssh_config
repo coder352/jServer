@@ -26,7 +26,7 @@ then
 fi
 cat jid_rsa.pub > authorized_keys 
 cat did_rsa.pub >> authorized_keys 
-chmod 777 authorizedkeys
+chmod 777 authorized_keys 
 
 
 
