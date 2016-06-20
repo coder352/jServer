@@ -1,4 +1,5 @@
 #!/bin/bash
+#其实在本机终端一句话就可以解决的
 cd
 path=`pwd`
 cd -
