@@ -57,6 +57,7 @@ chown -R coder352:ftp /srv/ftp/coder352  # 更改FTP目录的权限
 # 3.1.2 把用户限制在固定的目录
 # 如果这时候登陆会发现刚才新建的用户可以访问并读取所有的目录的数据，这并不是我们想要的，需要把他们限定在某个目录下
 vim /etc/vsftpd/vsftpd.conf
+# 这里可以直接运行 ./ftp_config
 ```
 chroot_list_enable=YES
 chroot_list_file=/etc/vsftpd/chroot_list
@@ -73,6 +74,7 @@ netstat -tulpn | grep :21
 # 可能要配置一下 iptables 
 # 在自己电脑上
 ftp xx.xx.xx.xx  # 就可以实现登陆 ftp 服务器了
+# 一些常见的其它错误, 见 ./ftp_config
 
 # 3.2 基于虚拟用户的配置
 # 3.2.1 修改配置文件
