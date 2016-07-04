@@ -1,0 +1,7 @@
+#/bin/bash
+
+if [ ! -e /etc/vsftpd/vsftpd.conf.jbak ] then
+    cp /etc/vsftpd/vsftpd.conf /etc/vsftpd/vsftpd.conf.jbak
+fi
+cp ./src/vsftpd.conf /etc/vsftpd/vsftpd.conf
+
