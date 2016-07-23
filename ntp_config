@@ -1,0 +1,28 @@
+# 做 SDN 比赛时候用的 NTP 反射
+sudo apt-get install ntp
+# 开启 NTP 服务
+sudo service ntp start
+# 请求远端的 NTP 服务
+sudo ntpdc -n -c monlist 172.18.132.103  # 请求远端 NTP 服务, IP 为 NTP 服务器地址
+
+
+##################################################################
+## 国内常用NTP服务器地址及IP
+##################################################################
+ntp.sjtu.edu.cn 202.120.2.101 (上海交通大学网络中心NTP服务器地址）
+s1a.time.edu.cn	北京邮电大学
+s1b.time.edu.cn	清华大学
+s1c.time.edu.cn	北京大学
+s1d.time.edu.cn	东南大学
+s1e.time.edu.cn	清华大学
+s2a.time.edu.cn	清华大学
+s2b.time.edu.cn	清华大学
+s2c.time.edu.cn	北京邮电大学
+s2d.time.edu.cn	西南地区网络中心
+s2e.time.edu.cn	西北地区网络中心
+s2f.time.edu.cn	东北地区网络中心
+s2g.time.edu.cn	华东南地区网络中心
+s2h.time.edu.cn	四川大学网络管理中心
+s2j.time.edu.cn	大连理工大学网络中心
+s2k.time.edu.cn CERNET桂林主节点
+s2m.time.edu.cn 北京大学 这个可以进行 NTP 放大攻击

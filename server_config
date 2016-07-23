@@ -24,14 +24,18 @@ sudo mysqladmin -u root password newpassword # 修改管理员密码
 sudo /etc/init.d/mysql stop # start restart
 sudo service mysql stop
 # 1.3 取消开机启动
-sudo cp /etc/init.d/mysql /etc/init.d/mysql.bak
-sudo vim /etc/init.d/mysql
+sudo update-rc.d -f mysql remove  # 这个可以实现, 读取的就是 /etc/init.d/
+# 有四个选项 defaults remove start stop  # default 开机启动
+# 下面这种方法... 现在已经不行了
+# sudo cp /etc/init.d/mysql /etc/init.d/mysql.bak
+# sudo vim /etc/init.d/mysql
 # 查找 start, 将 su - mysql -s /bin/sh ... 那行注释掉
 
 ##################################################################
 ## 2. Nginx
 ##################################################################
 sudo apt-get insatll nginx
+sudo update-rc.d -f nginx remove
 
 ##################################################################
 ## 3. vsftpd  very secure FTP daemon
