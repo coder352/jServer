@@ -5,6 +5,28 @@ sudo service ntp start
 # 请求远端的 NTP 服务
 sudo ntpdc -n -c monlist 172.18.132.103  # 请求远端 NTP 服务, IP 为 NTP 服务器地址
 
+##################################################################
+## 配置文件 http://www.cnblogs.com/kerrycode/p/4744804.html
+##################################################################
+sudo vim /etc/ntp.conf
+sudo service ntp restart  # 修改完以后重启
+
+# 各个选项信息：
+# 系统时间与BIOS事件的偏差记录
+driftfile /etc/ntp/drift
+
+restrict 控制相关权限。
+# 语法为： restrict IP地址 mask 子网掩码 参数
+# 其中IP地址也可以是default ，default 就是指所有的IP
+# 参数有以下几个：
+ignore 关闭所有的 NTP 联机服务
+nomodify 客户端不能更改服务端的时间参数，但是客户端可以通过服务端进行网络校时。
+notrust 客户端除非通过认证，否则该客户端来源将被视为不信任子网
+noquery 不提供客户端的时间查询：用户端不能使用ntpq，ntpc等命令来查询ntp服务器
+notrap 不提供trap远端登陆：拒绝为匹配的主机提供模式 6 控制消息陷阱服务。陷阱服务是 ntpdq 控制消息协议的子系统，用于远程事件日志记录程序。
+nopeer 用于阻止主机尝试与服务器对等，并允许欺诈性服务器控制时钟
+kod 访问违规时发送 KoD 包。
+restrict -6 表示IPV6地址的权限设置。
 
 ##################################################################
 ## 国内常用NTP服务器地址及IP

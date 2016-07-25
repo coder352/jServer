@@ -169,6 +169,27 @@ firewall-cmd --zone=public --add-port=3306/tcp --permanent
 firewall-cmd --reload
 
 ##################################################################
+## 4. Hadoop
+##################################################################
+# 创建新用户
+sudo useradd -m hadoop -s /bin/bash  # 这条命令创建了可以登陆的 hadoop 用户，并使用 /bin/bash 作为 shell -m 是添加家目录
+sudo passwd hadoop  # 添加 用户密码
+sudo adduser hadoop sudo  # 可为 hadoop 用户增加管理员权限，方便部署，避免一些对新手来说比较棘手的权限问题
+# 最后注销当前用户（点击屏幕右上角的齿轮，选择注销），在登陆界面使用刚创建的 hadoop 用户进行登陆
+# 推荐用 docker, 按上面的来,换了环境,什么都没了...
+
+# 下载hadoop
+http://mirror.bit.edu.cn/apache/hadoop/common/
+# 进 stable 下载 .tar.gz 和 .tar.gz.md5
+sudo tar -xvzf hadoop-2.6.0.tar.gz -C /usr/local    # 解压到/usr/local中
+cd /usr/local/
+sudo mv ./hadoop-2.6.0/ ./hadoop            # 将文件夹名改为hadoop
+sudo chown -R hadoop ./hadoop       # 修改文件权限
+# 检查 是否安装成功
+cd /usr/local/hadoop
+./bin/hadoop version
+
+##################################################################
 ## tomcat
 ##################################################################
 sudo apt-get install tomcat # 还要按 tab 查看最新版本, 例如 tomcat8, 它将创建一个 tomcat8 用户，并以默认设置启动 Tomcat 
@@ -178,3 +199,9 @@ sudo apt-get install tomcat8-docs tomcat8-admin tomcat8-examples # 安装 Tomcat
 # <user username="admin" password="password" roles="manager-gui,admin-gui" />
 sudo service tomcat8 restart
 # 主目录: /var/lib/tomcat8/webapps/ROOT/index.html
+
+##################################################################
+## Others   
+##################################################################
+# ntp 
+# 见 ./ntp_config
