@@ -8,7 +8,7 @@
 ##################################################################
 # CentOS 7.0+ 不支持 mysql 换成了 mariadb
 # 创建/etc/yum.repos.d/MariaDB.repo文件，这里用到了刚刚发布正式版的10.0
-# 可以去网站上看看最新的版本
+# 方法一: 可以去网站上看看最新的版本
 vim /etc/yum.repos.d/MariaDB.repo
 ```
 [mariadb]
@@ -20,6 +20,19 @@ gpgcheck=1
 yum install MariaDB-server MariaDB-client
 service mysql start  # 启动服务
 mysqladmin -u root password "root"  # 修改密码
+
+# 方法二: 懒人推荐
+yum install mariadb-server mariadb 
+# mariadb 操作
+systemctl start mariadb  #启动MariaDB
+systemctl stop mariadb  #停止MariaDB
+systemctl restart mariadb  #重启MariaDB
+systemctl enable mariadb  #设置开机启动
+
+# 先启动数据库, 密码默认为空, 如果启动 mariadb, 输入 mysql -u root -p 会提示:
+# Can't connect to local MySQL server through socket '/var/lib/mysql/mysql.sock'
+systemctl start mariadb  #启动MariaDB
+mysql -u root -p  # 密码默认为空, 提示符也换成了 mariadb
 # /etc/my.cnf 是配置文件
 
 ##################################################################
