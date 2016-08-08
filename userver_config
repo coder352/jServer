@@ -1,7 +1,8 @@
 #!/bin/bash
 ##################################################################
-## Server
+## Server for Ubuntu
 ## 安装这些 server 时,要注意版本,按tab可以查看软件源支持的最高版
+## 5. PHP Mysql Nginx PHPMyAdmin  基本上按这个来就行了
 ##################################################################
 sudo sysv-rc-conf
 # 将下面安装的服务取消 开机自动启动
@@ -36,6 +37,7 @@ sudo update-rc.d -f mysql remove  # 这个可以实现, 读取的就是 /etc/ini
 ##################################################################
 sudo apt-get insatll nginx
 sudo update-rc.d -f nginx remove
+# 配置文件在 /etc/nginx
 
 ##################################################################
 ## 3. vsftpd  very secure FTP daemon
@@ -190,6 +192,74 @@ cd /usr/local/hadoop
 ./bin/hadoop version
 
 ##################################################################
+## 5. PHP Mysql Nginx PHPMyAdmin
+## http://cuiqingcai.com/2036.html  静觅
+## 这样配置是为了自己用 vim 写web时方便
+##################################################################
+# nginx
+sudo apt-get update
+sudo apt-get install nginx
+sudo vim /etc/nginx/sites-available/default  # 在自己电脑上玩,就随意点
+:<<!EOF!
+root /home/coder352/web;
+index index.html index.php index.htm;
+!EOF!
+sudo service nginx restart
+# php
+apt-cache search php | grep php-  # 查看有哪些可以安装
+sudo apt-get install php7.0-.  # 将所有的 php7.0- 开头的都装上
+sudo apt-get install php-mysql  # 用 mysql_connect() 时需要这个, mysqli_connect() 就不需要 # mysqli_*() is the modern way to access a MySQL database via PHP.
+# mysql  passwd: root(default)
+sudo apt-get install mysql-server mysql-client
+# phpmyadmin  passwd: root(default)
+sudo apt-get install phpmyadmin
+sudo ln -s /usr/share/phpmyadmin /home/coder352/web/phpmyadmin
+# spawn-fcgi
+sudo apt-get install spawn-fcgi
+sudo vim /etc/nginx/fastcgi_params  # 增加下面一行
+:<<!EOF!
+fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
+!EOF!
+sudo vim /etc/php/7.0/cgi/php.ini  # 将下面一行取消注释, 这样php-cgi方能正常使用SCRIPT_FILENAME这个变量
+:<<!EOF!
+cgi.fix_pathinfo=1;
+# 值为 0 的话, PHP的只會處理確切位置的檔案，一來加快速度二來更安全，修改完後重新啟動PHP：
+!EOF!
+sudo vim /etc/nginx/sites-available/default  # 将原来的 location ~ \.php 修改为
+:<<!EOF!
+    location ~ \.php$ {
+    #    fastcgi_split_path_info ^(.+\.php)(/.+)$;
+    #    # NOTE: You should have "cgi.fix_pathinfo = 0;" in php.ini
+    #
+    #    # With php5-cgi alone:
+        fastcgi_pass 127.0.0.1:9000;
+    #    # With php5-fpm:
+    #    fastcgi_pass unix:/var/run/php5-fpm.sock;
+        fastcgi_index index.php;
+        fastcgi_param SCRIPT_FILENAME /home/coder352/web$fastcgi_script_name;
+        include fastcgi_params;
+    }
+!EOF!
+sudo /usr/bin/spawn-fcgi -a 127.0.0.1 -p 9000 -C 5 -u www-data -g www-data -f /usr/bin/php-cgi7.0 -P /var/run/fastcgi-php.pid
+:<<!EOF!
+开启fastcgi进程
+参数含义如下
+* -f 指定调用FastCGI的进程的执行程序位置，根据系统上所装的PHP的情况具体设置
+* -a 绑定到地址addr
+* -p 绑定到端口port
+* -s 绑定到unix socket的路径path
+* -C 指定产生的FastCGI的进程数，默认为5（仅用于PHP）
+* -P指定产生的进程的PID文件路径
+* -u和-g FastCGI使用什么身份（-u 用户 -g 用户组）运行，Ubuntu下可以使用www-data,其他的根据情况配置，如nobody、apache等现在可以在web根目录下放个探针或php文件测试一下了
+运行结果类似如下
+spawn-fcgi: child spawned successfully: PID: 11775
+!EOF!
+sudo vim /etc/rc.local
+:<<!EOF!
+/usr/bin/spawn-fcgi -a 127.0.0.1 -p 9000 -C 5 -u www-data -g www-data -f /usr/bin/php-cgi7.0 -P /var/run/fastcgi-php.pid 
+!EOF!
+
+##################################################################
 ## tomcat
 ##################################################################
 sudo apt-get install tomcat # 还要按 tab 查看最新版本, 例如 tomcat8, 它将创建一个 tomcat8 用户，并以默认设置启动 Tomcat 
@@ -199,6 +269,62 @@ sudo apt-get install tomcat8-docs tomcat8-admin tomcat8-examples # 安装 Tomcat
 # <user username="admin" password="password" roles="manager-gui,admin-gui" />
 sudo service tomcat8 restart
 # 主目录: /var/lib/tomcat8/webapps/ROOT/index.html
+
+##################################################################
+## LAMP
+##################################################################
+# 简单的方法
+sudo apt-get update
+sudo apt-get install tasksel
+sudo tasksel install lamp-server
+# 复杂的方法
+
+##################################################################
+## LNMP lnmp.org
+##################################################################
+wget -c http://soft.vpser.net/lnmp/lnmp1.3-full.tar.gz && tar zxf lnmp1.3-full.tar.gz && cd lnmp1.3-full && ./install.sh {lnmp|lnmpa|lamp}
+# 需要 20 分钟左右
+:<<!EOF!
+状态管理
+  LNMP/LNMPA/LMAP状态管理：lnmp {start|stop|reload|restart|kill|status}
+  Nginx状态管理：lnmp nginx或/etc/init.d/nginx {start|stop|reload|restart}
+  MySQL状态管理：lnmp mysql或/etc/init.d/mysql {start|stop|restart|reload|force-reload|status}
+  MariaDB状态管理：lnmp mariadb或/etc/init.d/mariadb {start|stop|restart|reload|force-reload|status}
+  PHP-FPM状态管理：lnmp php-fpm或/etc/init.d/php-fpm {start|stop|quit|restart|reload|logrotate}
+  PureFTPd状态管理：lnmp pureftpd或/etc/init.d/pureftpd {start|stop|restart|kill|status}
+  Apache状态管理：lnmp httpd或/etc/init.d/httpd {start|stop|restart|graceful|graceful-stop|configtest|status}
+
+虚拟主机管理
+  添加：lnmp vhost add
+  删除：lnmp vhost del
+  列出：lnmp vhost list
+
+相关图形界面
+  PHPMyAdmin：http://yourIP/phpmyadmin/
+  phpinfo：http://yourIP/phpinfo.php
+  PHP探针：http://yourIP/p.php
+  Xcache管理界面：http://yourIP/xcache/
+  Zend Opcache管理界面：http://yourIP/ocp.php
+
+LNMP相关目录文件
+
+ 目录位置
+  Nginx：/usr/local/nginx/
+  MySQL：/usr/local/mysql/
+  MariaDB：/usr/local/mariadb/
+  PHP：/usr/local/php/
+  PHPMyAdmin：/home/wwwroot/default/phpmyadmin/
+  默认虚拟主机网站目录：/home/wwwroot/default/
+  Nginx日志目录：/home/wwwlogs/
+
+ 配置文件：
+  Nginx主配置文件：/usr/local/nginx/conf/nginx.conf
+  MySQL/MariaDB配置文件：/etc/my.cnf
+  PHP配置文件：/usr/local/php/etc/php.ini
+  PHP-FPM配置文件：/usr/local/php/etc/php-fpm.conf
+  PureFtpd配置文件：/usr/local/pureftpd/etc/pure-ftpd.conf
+  Apache配置文件：/usr/local/apache/conf/httpd.conf
+!EOF!
 
 ##################################################################
 ## Others   

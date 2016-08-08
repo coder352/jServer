@@ -1,0 +1,98 @@
+#!/bin/bash
+##################################################################
+## Server for Centos
+##################################################################
+
+##################################################################
+## 1. Mysql
+##################################################################
+# CentOS 7.0+ 不支持 mysql 换成了 mariadb
+# 创建/etc/yum.repos.d/MariaDB.repo文件，这里用到了刚刚发布正式版的10.0
+# 可以去网站上看看最新的版本
+vim /etc/yum.repos.d/MariaDB.repo
+```
+[mariadb]
+name = MariaDB
+baseurl = http://yum.mariadb.org/10.0/centos6-amd64/
+gpgkey=https://yum.mariadb.org/RPM-GPG-KEY-MariaDB
+gpgcheck=1
+```
+yum install MariaDB-server MariaDB-client
+service mysql start  # 启动服务
+mysqladmin -u root password "root"  # 修改密码
+# /etc/my.cnf 是配置文件
+
+##################################################################
+## 2. php
+##################################################################
+yum install php php-mysql php-fpm
+# 解决 php 安全威胁
+vi /etc/php.ini
+```cgi.fix_pathinfo=0```
+# 如此PHP的只會處理確切位置的檔案，一來加快速度二來更安全，修改完後重新啟動PHP：
+# 配置 php-fpm
+vi /etc/php-fpm.d/www.conf
+```
+listen = /var/run/php-fpm/php-fpm.sock
+listen.owner = nobody
+listen.group = nobody
+user = nginx
+group = nginx
+```
+service php-fpm stop
+service php-fpm start
+chkconfig php-fpm on
+
+##################################################################
+## 3. Nginx 和 2. PHP 一块配置
+##################################################################
+yum install epel-release
+yum install nginx
+# 设置开机启动
+service httpd stop
+chkconfig httpd off
+service nginx start
+chkconfig nginx on
+# 配置 nginx 解析 php
+vi /etc/nginx/conf.d/default.conf  # 或者
+vim /etc/nginx/nginx.conf
+```
+# 大概是这样的, 注意 php 那段
+server {
+    listen       80 default_server;
+    listen       [::]:80 default_server;
+    server_name  _;
+    root         /usr/share/nginx/html;
+    index index.php index.html index.htm;
+
+    # Load configuration files for the default server block.
+    include /etc/nginx/default.d/*.conf;
+
+    location / {
+    }
+    location ~ \.php$ {
+	#    root           html;
+	    try_files $uri =404;
+	    fastcgi_pass  unix:/var/run/php-fpm/php-fpm.sock; 
+	    fastcgi_index  index.php;
+	    fastcgi_param  SCRIPT_FILENAME  $document_root$fastcgi_script_name;
+	    include        fastcgi_params;
+	}
+    error_page 404 /404.html;
+        location = /40x.html {
+    }
+    error_page 500 502 503 504 /50x.html;
+        location = /50x.html {
+    }
+}
+```
+# 重启
+service nginx reload
+
+##################################################################
+## LNMP
+##################################################################
+# nginx 403 Forbidden
+vim /etc/nginx/nginx.conf
+# user username  # change the 'username' with linux user name. just as 'root'
+
