@@ -7,28 +7,13 @@
 ## 1. Mysql
 ##################################################################
 # CentOS 7.0+ 不支持 mysql 换成了 mariadb
-# 创建/etc/yum.repos.d/MariaDB.repo文件，这里用到了刚刚发布正式版的10.0
-# 方法一: 可以去网站上看看最新的版本
-vim /etc/yum.repos.d/MariaDB.repo
-```
-[mariadb]
-name = MariaDB
-baseurl = http://yum.mariadb.org/10.0/centos6-amd64/
-gpgkey=https://yum.mariadb.org/RPM-GPG-KEY-MariaDB
-gpgcheck=1
-```
-yum install MariaDB-server MariaDB-client
-service mysql start  # 启动服务
-mysqladmin -u root password "root"  # 修改密码
-
-# 方法二: 懒人推荐
 yum install mariadb-server mariadb 
+mysqladmin -u root password "root"  # 修改密码
 # mariadb 操作
 systemctl start mariadb  #启动MariaDB
 systemctl stop mariadb  #停止MariaDB
 systemctl restart mariadb  #重启MariaDB
 systemctl enable mariadb  #设置开机启动
-
 # 先启动数据库, 密码默认为空, 如果启动 mariadb, 输入 mysql -u root -p 会提示:
 # Can't connect to local MySQL server through socket '/var/lib/mysql/mysql.sock'
 systemctl start mariadb  #启动MariaDB
@@ -101,11 +86,34 @@ server {
 ```
 # 重启
 service nginx reload
+# 关闭
+nginx -s stop
+nginx -s qiut
+service nginx stop
 
 ##################################################################
-## LNMP
+## 4. xampp
 ##################################################################
-# nginx 403 Forbidden
-vim /etc/nginx/nginx.conf
-# user username  # change the 'username' with linux user name. just as 'root'
+chmod 777 xampp.run && ./xampp.run
+sudo /opt/lampp/lampp stop/start/restart
+sudo /opt/lampp/lampp startapache  # 至启动单个的,其它一次类推
+sudo /opt/lampp/lampp security  # 为各种软件设置密码 root root
+http://115.28.247.19/phpmyadmin/  # phpmyadmin username: xampp passwd: root
+/opt/lampp/htdocs/  # 网站根目录
+/opt/lampp/etc/httpd.conf  # apache 配置文件
+/opt/lampp/etc/my.cnf  # mysql 配置文件
+/opt/lampp/etc/php.ini  # php 配置文件
+/opt/lampp/etc/proftpd.conf  # proftpd 配置文件
+/opt/lampp/phpmyadmin/config.inc.php  # phpmyadmin 配置文件
+# 卸载
+sudo /opt/lampp/lampp stop
+sudo rm -rf /opt/lampp
 
+##################################################################
+## 5. DVWA
+##################################################################
+# 解压到网站根目录下
+/opt/lampp/htdocs/DVWA/config/config.inc.php  # 配置文件
+# 修改其中的 mysql 密码
+# 进入网站, reset -> username: admin; passwd: passwd
+# 正常情况下,可以在 mysql中看到五个users
