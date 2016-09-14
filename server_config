@@ -4,27 +4,149 @@
 ## 安装这些 server 时,要注意版本,按tab可以查看软件源支持的最高版
 ## 5. PHP Mysql Nginx PHPMyAdmin  基本上按这个来就行了
 ##################################################################
-sudo sysv-rc-conf  # 将下面安装的服务取消 开机自动启动
 whereis softname  # 查看配置文件和安装目录
 dpdk -S softname  # 查看具体安装位置
 sudo apt-cache search php | grep php-  # 查看有那些可以安装
+nmapme  # 自定义查看自己电脑开了哪些服务
+sudo systemctl disable mysql  # enable  # 开机不启动 MariaDB
+systemctl start mariadb  # stop restart # 启动 MariaDB, 不用 sudo
+##################################################################
+## Server for CentOS
+chkconfig php-fpm on  # 开机启动
 
 ##################################################################
-## 1. mysql
+## 1. mariadb Ubuntu
 ##################################################################
-sudo apt-get install mysql-server mysql-client php5-mysql
-# 1.1 MariaDB #　这是安装的最新版的，也可以只运行最下面一句话 
-sudo apt-get install mariadb-server
-# 1.2 配置
+sudo apt-get install mariadb-server mariadb-client mariadb-common php-mysql  # 不要用 mysql-server
 # /etc/mysql/mysql.conf.d/mysqld.cnf # 配置文件地址
-# bind-address = 127.0.0.1 //找到此内容并且注释,就可以通过远程访问了
-sudo mysqladmin -u root password newpassword # 修改管理员密码
+# bind-address = 127.0.0.1  # 找到此内容并且注释,就可以通过远程访问了, 还是不注释, 非生产环境都用root做密码
+sudo mysqladmin -u root password "root"  # 修改密码
 sudo /etc/init.d/mysql stop  # sudo service mysql stop  # 两个命令都可以停止
+mysql -u root -p  # 接着输入密码启动, 命令都是 mysql 的, 只是提示符变了
+##################################################################
+## 1. mariadb CentOS
+yum install mariadb-server mariadb  # CentOS 7.0+ 不支持 mysql 换成了 mariadb  # 不写sudo是因为在服务器上
+# /etc/my.cnf 是配置文件
 
 ##################################################################
-## 2. Nginx
+## 2. php phpmyadmin Ubuntu
+##################################################################
+sudo apt-get install php php-fpm php-mysql  # 用 mysql_connect() 时需要这个, mysqli_connect() 就不需要 # mysqli_*() is the modern way to access a MySQL database via PHP.
+sudo apt-get install phpmyadmin
+sudo ln -s /usr/share/phpmyadmin /home/coder352/web/phpmyadmin  # 我把Nginx的目录设为了 ~/web
+##################################################################
+## 2. php phpmyadmin CentOS
+yum install php php-mysql php-fpm
+# 解决 php 安全威胁
+vi /etc/php.ini
+```cgi.fix_pathinfo=0```
+# 如此PHP的只會處理確切位置的檔案，一來加快速度二來更安全，修改完後重新啟動PHP：
+# 配置 php-fpm
+vi /etc/php-fpm.d/www.conf
+```
+listen = /var/run/php-fpm/php-fpm.sock
+listen.owner = nobody
+listen.group = nobody
+user = nginx
+group = nginx
+```
+
+##################################################################
+## 3. Nginx Ubuntu
 ##################################################################
 sudo apt-get insatll nginx
+##################################################################
+## 3. Nginx CentOS
+yum install epel-release
+yum install nginx
+# 设置开机启动
+service httpd stop
+chkconfig httpd off
+service nginx start
+chkconfig nginx on
+# 配置 nginx 解析 php
+vi /etc/nginx/conf.d/default.conf  # 或者
+vim /etc/nginx/nginx.conf
+```
+# 大概是这样的, 注意 php 那段
+server {
+    listen       80 default_server;
+    listen       [::]:80 default_server;
+    server_name  _;
+    root         /usr/share/nginx/html;
+    index index.php index.html index.htm;
+
+    # Load configuration files for the default server block.
+    include /etc/nginx/default.d/*.conf;
+
+    location / {
+    }
+    location ~ \.php$ {
+	#    root           html;
+	    try_files $uri =404;
+	    fastcgi_pass  unix:/var/run/php-fpm/php-fpm.sock; 
+	    fastcgi_index  index.php;
+	    fastcgi_param  SCRIPT_FILENAME  $document_root$fastcgi_script_name;
+	    include        fastcgi_params;
+	}
+    error_page 404 /404.html;
+        location = /40x.html {
+    }
+    error_page 500 502 503 504 /50x.html;
+        location = /50x.html {
+    }
+}
+```
+# 重启
+service nginx reload
+# 关闭
+nginx -s stop
+nginx -s qiut
+service nginx stop
+
+##################################################################
+## 4. xampp
+##################################################################
+chmod 777 xampp.run && ./xampp.run
+sudo /opt/lampp/lampp stop/start/restart
+sudo /opt/lampp/lampp startapache  # 至启动单个的,其它一次类推
+sudo /opt/lampp/lampp security  # 为各种软件设置密码 root root
+http://115.28.247.19/phpmyadmin/  # phpmyadmin username: xampp passwd: root
+/opt/lampp/htdocs/  # 网站根目录
+/opt/lampp/etc/httpd.conf  # apache 配置文件
+/opt/lampp/etc/my.cnf  # mysql 配置文件
+/opt/lampp/etc/php.ini  # php 配置文件
+/opt/lampp/etc/proftpd.conf  # proftpd 配置文件
+/opt/lampp/phpmyadmin/config.inc.php  # phpmyadmin 配置文件
+# 卸载
+sudo /opt/lampp/lampp stop
+sudo rm -rf /opt/lampp
+
+##################################################################
+## 5. DVWA
+##################################################################
+# 解压到网站根目录下
+/opt/lampp/htdocs/DVWA/config/config.inc.php  # 配置文件
+# 修改其中的 mysql 密码
+# 进入网站, reset -> username: admin; passwd: passwd
+# 正常情况下,可以在 mysql中看到五个users
+chmod 777 DVWA  # 修改目录的权限
+
+##################################################################
+## 6. sqli-labs
+##################################################################
+git clone https://github.com/Audi-1/sqli-labs.git jsqli-labs  # 进入网站根目录下载
+vim sql-connections/db-creds.inc  # 修改数据库用户名和密码 默认 root root
+
+##################################################################
+## 7. ssh
+##################################################################
+sudo apt-get install openssh-server
+sudo vim /etc/ssh/sshd_config
+
+##################################################################
+## 下面很乱, 有时间再整理
+##################################################################
 
 ##################################################################
 ## 3. vsftpd  very secure FTP daemon
