@@ -5,35 +5,81 @@
 ## 5. PHP Mysql Nginx PHPMyAdmin  基本上按这个来就行了
 ##################################################################
 whereis softname  # 查看配置文件和安装目录
+dpkg -l | grep libevent  # 看 libevent 是否已经安装
 dpdk -S softname  # 查看具体安装位置
 sudo apt-cache search php | grep php-  # 查看有那些可以安装
 nmapme  # 自定义查看自己电脑开了哪些服务
-sudo systemctl disable mysql  # enable  # 开机不启动 MariaDB
 systemctl start mariadb  # stop restart # 启动 MariaDB, 不用 sudo
+service mysql start  # 启动 mariadb
+sudo systemctl disable mysql.service  # enable  # 开机不启动 MariaDB, 一定要加 sudo
+systemctl status nginx.service  # 查看运行故障
+locate mongodb  # 查看软件安装位置
+sudo ufw deny smtp  # 关闭 SMTP邮件 服务
+ss -ant  # 和 netstat 功能差不多, 但更好, 查看端口占用情况
 ##################################################################
 ## Server for CentOS
 chkconfig php-fpm on  # 开机启动
 
 ##################################################################
-## 1. mariadb Ubuntu
+## 1. mariadb Ubuntu port: 3306 password: root(default for root)
 ##################################################################
 sudo apt-get install mariadb-server mariadb-client mariadb-common php-mysql  # 不要用 mysql-server
 # /etc/mysql/mysql.conf.d/mysqld.cnf # 配置文件地址
 # bind-address = 127.0.0.1  # 找到此内容并且注释,就可以通过远程访问了, 还是不注释, 非生产环境都用root做密码
 sudo mysqladmin -u root password "root"  # 修改密码
 sudo /etc/init.d/mysql stop  # sudo service mysql stop  # 两个命令都可以停止
-mysql -u root -p  # 接着输入密码启动, 命令都是 mysql 的, 只是提示符变了
+sudo mysql -u root -p  # 接着输入密码启动, 命令都是 mysql 的, 只是提示符变了
 ##################################################################
 ## 1. mariadb CentOS
 yum install mariadb-server mariadb  # CentOS 7.0+ 不支持 mysql 换成了 mariadb  # 不写sudo是因为在服务器上
 # /etc/my.cnf 是配置文件
 
 ##################################################################
+## 1.1 MongoDB Ubuntu
+##################################################################
+sudo apt-get install mongodb  # clients 和 server 就同时安装好了, 默认不会开机启动, 所以每次
+sudo service mongodb start/stop  # 开启/关闭 数据库
+sudo mkdir data/db  # 默认读取位置, 需要自己创建, 否则需要自己指定, 见下面
+/var/log/mongodb/mongodb.log  # 日志路径
+mongo # 启动
+mongod --dbpath /var/lib/mongodb/ --logpath /var/log/mongodb/mongodb.log --logappend &
+# --dbpath：指定mongo的数据库文件在哪个文件夹
+# --logpath：指定mongo的log日志是哪个，这里log一定要指定到具体的文件名
+# --logappend：表示log的写入是采用附加的方式，默认的是覆盖之前的文件
+# &：表示程序在后台运行
+sudo vim /etc/mongodb.conf  # bind_ip = 127.0.0.1 这句话没有注释的话, 只允许本地
+
+##################################################################
+## 1.2 Memcached Ubuntu 11211
+##################################################################
+sudo apt-get install memcached  # libevent 和 Memcached 一起被安装，无需另行安装 libevent
+find / -name 'libevent*' | grep libevent  # 确认 libevent 是否被安装
+find / -name 'memcached*' | grep memcached
+memcached -d -m 256 -u root -l localhost -c 256 -P /tmp/memcached.pid  # 开启, 显示 Connected to 127.0.0.1. Escape character is '^]', 就行了
+# d 启动一个守护进程; m 指定最大使用内存大小,默认值64 MB; u root用户使用; l 绑定地址; c 最大同时连接数; p 将PID写入文件,这样可以使得后边进行快速进程终止,需要与-d 一起使用
+telnet localhost 11211  # 默认开的是 11211 端口
+
+##################################################################
+## 1.3 Redis Ubuntu 6379
+##################################################################
+sudo apt-get install redis-server
+sudo service redis-server start  # 开启服务器
+redis-cli  # 进入命令行客户端, 当已经设置了密码时, 这样进去是没有任何权限的, 具体参考 jTempalte
+
+##################################################################
+## 1.4 Sqlite Ubuntu
+##################################################################
+sudo apt install sqlite sqlite3  # sqlite3, 独立程序用来查询和管理SQLite数据库文件  # sqlite 不需要服务器
+sqlite  # 进入命令行
+
+##################################################################
 ## 2. php phpmyadmin Ubuntu
 ##################################################################
-sudo apt-get install php php-fpm php-mysql  # 用 mysql_connect() 时需要这个, mysqli_connect() 就不需要 # mysqli_*() is the modern way to access a MySQL database via PHP.
-sudo apt-get install phpmyadmin
+sudo apt-get install php php-dev php-fpm php-mysql  # 用 mysql_connect() 时需要这个, mysqli_connect() 就不需要 # mysqli_*() is the modern way to access a MySQL database via PHP.
+sudo apt-get install phpmyadmin  # 中间进入图形界面选择, 密码 root
 sudo ln -s /usr/share/phpmyadmin /home/coder352/web/phpmyadmin  # 我把Nginx的目录设为了 ~/web
+sudo apt-get install php-memcache php-memcached  # memcached 要比 memcache 高级一些
+vim /etc/php/7.0/cli/php.ini  # 添加 extension='memcached.so', 这样才能支持上面的 php-memcached, 不用重启php
 ##################################################################
 ## 2. php phpmyadmin CentOS
 yum install php php-mysql php-fpm
@@ -54,7 +100,7 @@ group = nginx
 ##################################################################
 ## 3. Nginx Ubuntu
 ##################################################################
-sudo apt-get insatll nginx
+sudo apt-get install nginx
 ##################################################################
 ## 3. Nginx CentOS
 yum install epel-release
@@ -84,7 +130,7 @@ server {
     location ~ \.php$ {
 	#    root           html;
 	    try_files $uri =404;
-	    fastcgi_pass  unix:/var/run/php-fpm/php-fpm.sock; 
+	    fastcgi_pass  unix:/var/run/php-fpm/php-fpm.sock;
 	    fastcgi_index  index.php;
 	    fastcgi_param  SCRIPT_FILENAME  $document_root$fastcgi_script_name;
 	    include        fastcgi_params;
@@ -145,244 +191,29 @@ sudo apt-get install openssh-server
 sudo vim /etc/ssh/sshd_config
 
 ##################################################################
-## 下面很乱, 有时间再整理
+## 8. LAMP Linux Apache Mysql PHP
 ##################################################################
-
-##################################################################
-## 3. vsftpd  very secure FTP daemon
-##################################################################
-rpm -qa | grep vsftpd # 先检查是否已经安装了 vsftpd
-
-# 3.1 如果没有，就安装，并设置开机启动
-yum -y install vsftpd
-chkconfig vsftpd on  # 设置开机启动
-service vsftpd start  # 启动vsftpd
-groupadd ftp  # 添加用户组
-useradd -g ftp -M -d /srv/ftp/coder352 -s /sbin/nologin coder352
-passwd coder352  # 为用户设置密码,暂时用 asdasd 吧,毕竟是 test
-# -g接的是用户组; 
-# -M表示不设置它的主目录，假设如果没有-M，则在/home下会有跟用户名(zhujin)一样的目录。
-# -d后面接的是用zhujin登陆FTP的时候，它的初始目录。
-# -s 后面接/sbin/nologin表示用户不需要登录系统，因为我们只需要用来登陆FTP
-# coder352表示用户名了
-mkdir -p /srv/ftp/coder352
-chown -R coder352:ftp /srv/ftp/coder352  # 更改FTP目录的权限
-/etc/init.d/vsftpd restart  # 重启 vsftpd
-
-# 3.1.2 把用户限制在固定的目录
-# 如果这时候登陆会发现刚才新建的用户可以访问并读取所有的目录的数据，这并不是我们想要的，需要把他们限定在某个目录下
-vim /etc/vsftpd/vsftpd.conf
-# 这里可以直接运行 ./ftp_config
-```
-chroot_list_enable=YES
-chroot_list_file=/etc/vsftpd/chroot_list
-# Fixing 500 OOPS: vsftpd: refusing to run with writable root inside chroot ()
-allow_writeable_chroot=YES  # change users root directory is writable 
-```
-# 然后在文件
-vim /etc/vsftpd/chroot_list  # 里面填入你想要限制的用户，
-# 比如我就填入了 coder352 ，这时候重启vsftp，然后重新登陆就可以了。
-# 上面是基本配置,就可以直接使用了,下面的是一些虚拟用户的配置
-# 测试
-telnet localhost 21
-netstat -tulpn | grep :21
-# 可能要配置一下 iptables 
-# 在自己电脑上
-ftp xx.xx.xx.xx  # 就可以实现登陆 ftp 服务器了
-# 一些常见的其它错误, 见 ./ftp_config
-
-# 3.2 基于虚拟用户的配置
-# 3.2.1 修改配置文件
-# 所谓虚拟用户就是没有使用真实的帐户，只是通过映射到真实帐户和设置权限的目的。虚拟用户不能登录CentOS系统。
-sudo vim /etc/vsftpd/vsftpd.conf  # 进行配置
-# 或者也可以执行 ./vsftpd.config
-
-:||{
-anonymous_enable=NO  # 设定不允许匿名访问
-local_enable=YES  # 设定本地用户可以访问。注：如使用虚拟宿主用户，在该项目设定为NO的情况下所有虚拟用户将无法访问
-chroot_list_enable=YES  # 使用户不能离开主目录
-ascii_upload_enable=YES
-ascii_download_enable=YES  # 设定支持ASCII模式的上传和下载功能
-pam_service_name=vsftpd  # PAM认证文件名。PAM将根据/etc/pam.d/vsftpd进行认证
-# 以下这些是关于vsftpd虚拟用户支持的重要配置项，默认vsftpd.conf中不包含这些设定项目，需要自己手动添加
-guest_enable=YES  # 设定启用虚拟用户功能
-guest_username=ftp # 指定虚拟用户的宿主用户，CentOS中已经有内置的ftp用户了
-user_config_dir=/etc/vsftpd/vuser_conf  # 设定虚拟用户个人vsftp的CentOS FTP服务文件存放路径。存放虚拟用户个性的CentOS FTP服务文件(配置文件名=虚拟用户名
-}
-
-# 3.2.2 进行认证
-# 首先，安装Berkeley DB工具，很多人找不到db_load的问题就是没有安装这个包。
-yum install db4 db4-utils
-# 然后，创建用户密码文本
-vim /etc/vsftpd/vuser_passwd.txt # 注意奇行是用户名，偶行是密码
-```
-test
-123456
-```
-# 接着，生成虚拟用户认证的db文件
-db_load -T -t hash -f /etc/vsftpd/vuser_passwd.txt /etc/vsftpd/vuser_passwd.db
-# 随后，编辑认证文件
-vim /etc/pam.d/vsftpd  # 全部注释掉原来语句，再增加以下两句, vuser_passwd 不用修改
-```
-auth required pam_userdb.so db=/etc/vsftpd/vuser_passwd
-account required pam_userdb.so db=/etc/vsftpd/vuser_passwd
-```
-# 最后，创建虚拟用户配置文件
-mkdir /etc/vsftpd/vuser_conf/
-vi /etc/vsftpd/vuser_conf/test  # 文件名等于vuser_passwd.txt里面的账户名，否则下面设置无效
-# 内容如下
-```
-local_root=/ftp/www  //虚拟用户根目录,根据实际情况修改
-write_enable=YES  //可写
-anon_umask=022 //掩码
-anon_world_readable_only=NO 
-anon_upload_enable=YES 
-anon_mkdir_write_enable=YES
-anon_other_write_enable=YES
-```
-# 3.2.3 设置Selinux
-setsebool -P ftp_home_dir=1  # 设置ftp可以使用home目录
-setsebool -P allow_ftpd_full_access=1  # 设置ftp用户可以有所有权限
-# 3.2.4 设置FTP根目录权限
-mkdir /ftp/www  # 创建目录
-chmod -R 755 /ftp
-chmod -R 777 /ftp/www
-# 最新的vsftpd要求对主目录不能有写的权限所以ftp为755，主目录下面的子目录再设置777权限
-# 3.2.5 设置防火墙  # 这个没找到啊
-vim /etc/sysconfig/iptables
-# 在“-A INPUT –m state --state NEW –m tcp –p –dport 22 –j ACCEPT”，下添加：
-```
--A INPUT -m state --state NEW -m tcp -p -dport 21 -j ACCEPT
-```
-# 然后保存，并关闭该文件，在终端内运行下面的命令，刷新防火墙配置：
-service iptables restart
-# 3.3 配置PASV模式
-# vsftpd默认没有开启PASV模式，现在FTP只能通过PORT模式连接，要开启PASV默认需要通过下面的配置
-vim /etc/vsftpd/vsftpd.conf  # 在末尾添加
-```
-pasv_enable=YES   //开启PASV模式
-pasv_min_port=40000   //最小端口号
-pasv_max_port=40080   //最大端口号
-pasv_promiscuous=YES
-```
-# 在防火墙配置内开启40000到40080端口
-```
--A INPUT -m state --state NEW -m tcp -p -dport 40000:40080 -j ACCEPT
-```
-# 重启iptabls和vsftpd
-service iptables restart
-service vsftpd restart
-# 现在可以使用PASV模式连接你的FTP服务器了~
-# 3.4 附加
-# CentOS 7中默认使用Firewalld做防火墙，所以修改iptables后，在重启系统后，根本不管用。
-# Firewalld中添加端口方法如下：
-firewall-cmd --zone=public --add-port=3306/tcp --permanent
-firewall-cmd --reload
-
-##################################################################
-## 4. Hadoop
-##################################################################
-# 创建新用户
-sudo useradd -m hadoop -s /bin/bash  # 这条命令创建了可以登陆的 hadoop 用户，并使用 /bin/bash 作为 shell -m 是添加家目录
-sudo passwd hadoop  # 添加 用户密码
-sudo adduser hadoop sudo  # 可为 hadoop 用户增加管理员权限，方便部署，避免一些对新手来说比较棘手的权限问题
-# 最后注销当前用户（点击屏幕右上角的齿轮，选择注销），在登陆界面使用刚创建的 hadoop 用户进行登陆
-# 推荐用 docker, 按上面的来,换了环境,什么都没了...
-
-# 下载hadoop
-http://mirror.bit.edu.cn/apache/hadoop/common/
-# 进 stable 下载 .tar.gz 和 .tar.gz.md5
-sudo tar -xvzf hadoop-2.6.0.tar.gz -C /usr/local    # 解压到/usr/local中
-cd /usr/local/
-sudo mv ./hadoop-2.6.0/ ./hadoop            # 将文件夹名改为hadoop
-sudo chown -R hadoop ./hadoop       # 修改文件权限
-# 检查 是否安装成功
-cd /usr/local/hadoop
-./bin/hadoop version
-
-##################################################################
-## 5. PHP Mysql Nginx PHPMyAdmin
-## http://cuiqingcai.com/2036.html  静觅  这个使用第三方的 spawn-fcgi
-## 推荐看 cserver_config, 找时间把这里的删掉
-##################################################################
-# nginx
-sudo apt-get install nginx
-# php
-sudo apt-get install php php-fpm php-mysql  # 用 mysql_connect() 时需要这个, mysqli_connect() 就不需要 # mysqli_*() is the modern way to access a MySQL database via PHP.
-# mysql  passwd: root(default)
-sudo apt-get install mysql-server mysql-client
-# phpmyadmin  passwd: root(default)
-sudo apt-get install phpmyadmin
-sudo ln -s /usr/share/phpmyadmin /home/coder352/web/phpmyadmin
-
-##################################################################
-## tomcat
-##################################################################
-sudo apt-get install tomcat # 还要按 tab 查看最新版本, 例如 tomcat8, 它将创建一个 tomcat8 用户，并以默认设置启动 Tomcat 
-# URL: localhost: 8080 
-sudo apt-get install tomcat8-docs tomcat8-admin tomcat8-examples # 安装 Tomcat 的在线文档， Web接 口（管理 Web 应用），以及一些示例应用
-# sudo vim /etc/tomcat8/tomcat-users.xml # 必须用 sudo 权限打开，否则什么都看不到 # 在　<tomcat-users> 标签下添加管理员权限
-# <user username="admin" password="password" roles="manager-gui,admin-gui" />
-sudo service tomcat8 restart
-# 主目录: /var/lib/tomcat8/webapps/ROOT/index.html
-
-##################################################################
-## LAMP
-##################################################################
-# 简单的方法
+# 比较简单的方法, 详细的步骤见 jServer/server_config
 sudo apt-get update
 sudo apt-get install tasksel
 sudo tasksel install lamp-server
 
 ##################################################################
-## LNMP lnmp.org
+## 9. Shadowsocks
 ##################################################################
-wget -c http://soft.vpser.net/lnmp/lnmp1.3-full.tar.gz && tar zxf lnmp1.3-full.tar.gz && cd lnmp1.3-full && ./install.sh {lnmp|lnmpa|lamp}
-# 需要 20 分钟左右
-:<<!EOF!
-状态管理
-  LNMP/LNMPA/LMAP状态管理：lnmp {start|stop|reload|restart|kill|status}
-  Nginx状态管理：lnmp nginx或/etc/init.d/nginx {start|stop|reload|restart}
-  MySQL状态管理：lnmp mysql或/etc/init.d/mysql {start|stop|restart|reload|force-reload|status}
-  MariaDB状态管理：lnmp mariadb或/etc/init.d/mariadb {start|stop|restart|reload|force-reload|status}
-  PHP-FPM状态管理：lnmp php-fpm或/etc/init.d/php-fpm {start|stop|quit|restart|reload|logrotate}
-  PureFTPd状态管理：lnmp pureftpd或/etc/init.d/pureftpd {start|stop|restart|kill|status}
-  Apache状态管理：lnmp httpd或/etc/init.d/httpd {start|stop|restart|graceful|graceful-stop|configtest|status}
+# 为了更好的性能，VPS 尽量选择 XEN 或 KVM，不要使用 OpenVZ
+# Python 版, python 版本的有点慢, 推荐 ShadowsocksR
+sudo apt-get install python-pip  # https://github.com/shadowsocks/shadowsocks/wiki 查看教程
+pip install shadowsocks  # 或者直接 sudo apt-get install Shadowsocks
+sudo ssserver -p 443 -k password -m rc4-md5  # 这个会显示 log 信息
+sudo ssserver -p 443 -k password -m rc4-md5 --user nobody -d start  # 这个是在后台运行
 
-虚拟主机管理
-  添加：lnmp vhost add
-  删除：lnmp vhost del
-  列出：lnmp vhost list
+# ShadowsocksR 版, 详细介绍见 github Wiki
+git clone -b manyuser https://github.com/breakwa11/shadowsocks.git
+cd shadowsocks/shadowsocks  # 单用户版
+python server.py -p 443 -k 6IRwnC8Jck -m aes-256-cfb -O auth_sha1_v4 -o http_simple -d start  # 后台运行 p 端口 k 密码 m 加密方式 O 协议插件 o 混淆插件
+python server.py -d stop/restart  # 停止 / 重启
 
-相关图形界面
-  PHPMyAdmin：http://yourIP/phpmyadmin/
-  phpinfo：http://yourIP/phpinfo.php
-  PHP探针：http://yourIP/p.php
-  Xcache管理界面：http://yourIP/xcache/
-  Zend Opcache管理界面：http://yourIP/ocp.php
-
-LNMP相关目录文件
-
- 目录位置
-  Nginx：/usr/local/nginx/
-  MySQL：/usr/local/mysql/
-  MariaDB：/usr/local/mariadb/
-  PHP：/usr/local/php/
-  PHPMyAdmin：/home/wwwroot/default/phpmyadmin/
-  默认虚拟主机网站目录：/home/wwwroot/default/
-  Nginx日志目录：/home/wwwlogs/
-
- 配置文件：
-  Nginx主配置文件：/usr/local/nginx/conf/nginx.conf
-  MySQL/MariaDB配置文件：/etc/my.cnf
-  PHP配置文件：/usr/local/php/etc/php.ini
-  PHP-FPM配置文件：/usr/local/php/etc/php-fpm.conf
-  PureFtpd配置文件：/usr/local/pureftpd/etc/pure-ftpd.conf
-  Apache配置文件：/usr/local/apache/conf/httpd.conf
-!EOF!
-
-##################################################################
-## Others   
-##################################################################
-# ntp 
-# 见 ./ntp_config
+tail -f /var/log/shadowsocks.log  # 查看日志, 所有版本日志都是在这里
+sudo lsof -i -n -P | egrep -c ':443.+ESTABLISHED'  # 假设服务器端口443, 查看连接数
+sudo lsof -i -n -P | egrep ':443.+ESTABLISHED'  # 查看连接列表, 看看有几个不同的 IP
