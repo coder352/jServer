@@ -11,6 +11,8 @@ sudo apt-cache search php | grep php-  # 查看有那些可以安装
 nmapme  # 自定义查看自己电脑开了哪些服务
 systemctl start mariadb  # stop restart # 启动 MariaDB, 不用 sudo
 service mysql start  # 启动 mariadb
+service mysql status  # 很有用的一个命令
+service mysql reload  # 重新加载配置文件
 sudo systemctl disable mysql.service  # enable  # 开机不启动 MariaDB, 一定要加 sudo
 systemctl status nginx.service  # 查看运行故障
 locate mongodb  # 查看软件安装位置
@@ -44,15 +46,15 @@ sudo mkdir data/db  # 默认读取位置, 需要自己创建, 否则需要自己
 mongo # 启动
 mongod --dbpath /var/lib/mongodb/ --logpath /var/log/mongodb/mongodb.log --logappend &
 # --dbpath：指定mongo的数据库文件在哪个文件夹
-# --logpath：指定mongo的log日志是哪个，这里log一定要指定到具体的文件名
-# --logappend：表示log的写入是采用附加的方式，默认的是覆盖之前的文件
+# --logpath：指定mongo的log日志是哪个, 这里log一定要指定到具体的文件名
+# --logappend：表示log的写入是采用附加的方式, 默认的是覆盖之前的文件
 # &：表示程序在后台运行
 sudo vim /etc/mongodb.conf  # bind_ip = 127.0.0.1 这句话没有注释的话, 只允许本地
 
 ##################################################################
 ## 1.2 Memcached Ubuntu 11211
 ##################################################################
-sudo apt-get install memcached  # libevent 和 Memcached 一起被安装，无需另行安装 libevent
+sudo apt-get install memcached  # libevent 和 Memcached 一起被安装, 无需另行安装 libevent
 find / -name 'libevent*' | grep libevent  # 确认 libevent 是否被安装
 find / -name 'memcached*' | grep memcached
 memcached -d -m 256 -u root -l localhost -c 256 -P /tmp/memcached.pid  # 开启, 显示 Connected to 127.0.0.1. Escape character is '^]', 就行了
@@ -86,7 +88,7 @@ yum install php php-mysql php-fpm
 # 解决 php 安全威胁
 vi /etc/php.ini
 ```cgi.fix_pathinfo=0```
-# 如此PHP的只會處理確切位置的檔案，一來加快速度二來更安全，修改完後重新啟動PHP：
+# 如此PHP的只會處理確切位置的檔案, 一來加快速度二來更安全, 修改完後重新啟動PHP：
 # 配置 php-fpm
 vi /etc/php-fpm.d/www.conf
 ```
@@ -169,7 +171,7 @@ sudo /opt/lampp/lampp stop
 sudo rm -rf /opt/lampp
 
 ##################################################################
-## 5. DVWA
+## 5. DVWA  admin:password 默认的用户名密码, 先用一下
 ##################################################################
 # 解压到网站根目录下
 /opt/lampp/htdocs/DVWA/config/config.inc.php  # 配置文件
@@ -193,20 +195,35 @@ sudo vim /etc/ssh/sshd_config
 ##################################################################
 ## 8. LAMP Linux Apache Mysql PHP
 ##################################################################
-# 比较简单的方法, 详细的步骤见 jServer/server_config
 sudo apt-get update
 sudo apt-get install tasksel
 sudo tasksel install lamp-server
 
+sudo apt install apache2
+sudo service apache2 start
+
 ##################################################################
-## 9. Shadowsocks
+## 9. Shadowsocks teddysun/shadowsocks_install 一键安装脚本, 客户端使用的是 Python 版的
 ##################################################################
-# 为了更好的性能，VPS 尽量选择 XEN 或 KVM，不要使用 OpenVZ
+pip install M2Crypto  # 默认加密方法 table 速度很快, 但很不安全。推荐使用 “aes-256-cfb” 或者 “bf-cfb”。请不要使用 “rc4″, 它不安全。如果选择 “table” 之外的加密, 需要安装 M2Crypto。
+pip install gevent  # gevent 可以提高 Shadowsocks 的性能
+# 为了更好的性能, VPS 尽量选择 XEN 或 KVM, 不要使用 OpenVZ
+
 # Python 版, python 版本的有点慢, 推荐 ShadowsocksR
 sudo apt-get install python-pip  # https://github.com/shadowsocks/shadowsocks/wiki 查看教程
 pip install shadowsocks  # 或者直接 sudo apt-get install Shadowsocks
 sudo ssserver -p 443 -k password -m rc4-md5  # 这个会显示 log 信息
 sudo ssserver -p 443 -k password -m rc4-md5 --user nobody -d start  # 这个是在后台运行
+/usr/bin/python /usr/bin/ssserver -s ::0 -p 443 -k 6IRwnC8Jck -m aes-256-cfb  # banwagong CLI python
+
+# Go 版, 使用上面的一键安装脚本安装 SS, keptun 是 github 官网下载的
+# Host -> (1080)SSClient -> (11080)KcptunClient -> |GFW| -> (18383)KcptunServer -> (8383)SSServer -> VPS
+# wget kcptun-linux-amd64-20161207.tar.gz, 也可以不用加速器
+# /usr/bin/shadowsocks-server -c /etc/shadowsocks/config.json  # banwagong CLI go
+/usr/bin/shadowsocks-server -c /etc/shadowsocks/config.json > ~/ss.log &  # banwagong CLI go
+nohup ./server_linux_amd64 -t "127.0.0.1:8383" -l ":18383" -mode fast2 &  # VPS 开启加速
+nohup ./server_linux_amd64 -t "127.0.0.1:8384" -l ":18384" -mode fast2 &  # VPS 开启加速, 两个换着来, 流量大会被禁的...
+./client_linux_amd64 -r "45.78.9.29:18383" -l ":11080" -mode fast2  # Host 开启加速
 
 # ShadowsocksR 版, 详细介绍见 github Wiki
 git clone -b manyuser https://github.com/breakwa11/shadowsocks.git
