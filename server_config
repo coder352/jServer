@@ -9,7 +9,8 @@ dpkg -l | grep libevent  # 看 libevent 是否已经安装
 dpdk -S softname  # 查看具体安装位置
 sudo apt-cache search php | grep php-  # 查看有那些可以安装
 nmapme  # 自定义查看自己电脑开了哪些服务
-systemctl start mariadb  # stop restart # 启动 MariaDB, 不用 sudo
+systemctl start mariadb  # stop restart # 启动 MariaDB
+systemctl enable mariadb  # 开机启动 MariaDB
 service mysql start  # 启动 mariadb
 service mysql status  # 很有用的一个命令
 service mysql reload  # 重新加载配置文件
